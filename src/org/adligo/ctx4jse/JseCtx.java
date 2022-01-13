@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.adligo.ctx.shared.Ctx;
 import org.adligo.ctx.shared.CtxMutant;
@@ -43,21 +44,29 @@ import org.adligo.i.ctx4jse.shared.I_PrintCtx;
 
 public class JseCtx implements I_PrintCtx {
   public static final String UNABLE_TO_FIND_S_IN_THIS_CONTEXT = "Unable to find '%s' in this context!";
-  private static final String BAD_NAME = "Names passed to the create bean method MUST be java.lang.Class names!\n\t%s";
+  public static final String BAD_NAME = "Names passed to the create bean method MUST be java.lang.Class names!\n\t%s";
   public static final String UNABLE_TO_FIND_BEAN_CONSTRUCTOR_FOR_S = "Unable to find bean constructor for %s!";
   public static final Class<?> [] EMPTY_CLAZZ_ARRAY = new Class<?>[] {};
   public static final Object[] EMPTY_OBJECT_ARRAY = new Object[] {};
   public static final String UNABLE_TO_CREATE_INSTANCE_OF_S = "Unable to create instance of %s";
-
-  private final Map<String, Object> instanceMap = new ConcurrentHashMap<>();
+  
+  private final Map<String, Object> instanceMap;
   private final Optional<Ctx> ctxOpt;
   
   public JseCtx() {
-    ctxOpt = Optional.empty();
+    this(() -> Optional.empty(), () -> new ConcurrentHashMap<>());
   }
   
+  @SuppressWarnings("rawtypes")
   public JseCtx(CtxMutant ctx) {
-    ctxOpt = Optional.of(new Ctx(ctx, true));
+    this(() -> Optional.of(new Ctx(ctx)),
+        () -> new ConcurrentHashMap());
+  }
+
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  JseCtx(Supplier<Optional<Ctx>> ctxCreator, Supplier<ConcurrentHashMap> concurrentMapCtxCreation) {
+    ctxOpt = ctxCreator.get();
+    instanceMap = concurrentMapCtxCreation.get();
   }
 
   @SuppressWarnings("unchecked")
