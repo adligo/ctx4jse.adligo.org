@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.adligo.ctx.shared.Ctx;
@@ -52,6 +53,7 @@ public class JseCtx implements I_PrintCtx {
   
   private final Map<String, Object> instanceMap;
   private final Optional<Ctx> ctxOpt;
+  private final Consumer<Throwable> handler;
   
   public JseCtx() {
     this(() -> Optional.empty(), () -> new ConcurrentHashMap<>());
@@ -67,6 +69,13 @@ public class JseCtx implements I_PrintCtx {
   JseCtx(Supplier<Optional<Ctx>> ctxCreator, Supplier<ConcurrentHashMap> concurrentMapCtxCreation) {
     ctxOpt = ctxCreator.get();
     instanceMap = concurrentMapCtxCreation.get();
+    Consumer<Throwable> h;
+    if (ctxOpt.isPresent()) {
+      h = ctxOpt.get();
+    } else {
+      h = Ctx.newHandler();
+    }
+    handler = h;
   }
 
   @SuppressWarnings("unchecked")
@@ -150,6 +159,11 @@ public class JseCtx implements I_PrintCtx {
       throw new IllegalArgumentException(String.format(
           BAD_NAME, name));
     }
+  }
+
+  @Override
+  public void handle(Throwable t) {
+    handler.accept(t);
   }
   
 }
